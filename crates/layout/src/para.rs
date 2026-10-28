@@ -4,7 +4,6 @@
 use std::collections::VecDeque;
 use std::sync::Arc;
 
-use icu_segmenter::LineSegmenter;
 use wordcraft_doc::math::MathJc;
 use wordcraft_doc::numbering::{Level, LevelSuffix};
 use wordcraft_doc::para::{COLUMN_BREAK, InlineObject, LINE_BREAK, NoteKind, OBJ, PAGE_BREAK, PTabAlign, PTabBase, RubyAlign, SOFT_HYPHEN, WrapText};
