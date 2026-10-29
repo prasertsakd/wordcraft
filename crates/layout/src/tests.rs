@@ -5440,21 +5440,36 @@ fn thai_distributed_does_not_expand_last_or_explicit_break_lines() {
     assert_ne!(last.end, LineEnd::Wrap);
     assert!(last.xs.last().copied().unwrap_or(0.0) < last.right - 1.0, "final Thai Distributed line stays short");
 
-    for break_char in [wordcraft_doc::para::LINE_BREAK, wordcraft_doc::para::PAGE_BREAK, wordcraft_doc::para::COLUMN_BREAK] {
-        let mut explicit = Document::from_text(body);
-        explicit.para_mut(StoryRef::Body, &Path::top(0)).unwrap().insert_text(body.len(), &break_char.to_string(), &Default::default()).unwrap();
-        explicit
-            .format_paragraphs(&Pos::body(0, 0), &Pos::body(0, 0), &|p| {
-                p.align = Some(Align::ThaiDistribute);
-                p.indent_right = Some(468.0 - 420.0);
-                p.word_wrap = Some(false);
-            })
-            .unwrap();
-        let layout = lay(&explicit);
-        let (para, _) = body_para_and_x(&layout).unwrap();
-        let line = para.lines.iter().find(|line| matches!(line.end, LineEnd::LineBreak | LineEnd::PageBreak | LineEnd::ColumnBreak)).unwrap();
-        assert!(line.xs.last().copied().unwrap_or(0.0) < line.right - 1.0, "explicit {break_char:?} line remains unexpanded");
+    for align in [Align::Justify, Align::ThaiDistribute] {
+        for break_char in [wordcraft_doc::para::LINE_BREAK, wordcraft_doc::para::PAGE_BREAK, wordcraft_doc::para::COLUMN_BREAK] {
+            let mut explicit = Document::from_text(body);
+            explicit.para_mut(StoryRef::Body, &Path::top(0)).unwrap().insert_text(body.len(), &break_char.to_string(), &Default::default()).unwrap();
+            explicit
+                .format_paragraphs(&Pos::body(0, 0), &Pos::body(0, 0), &|p| {
+                    p.align = Some(align);
+                    p.indent_right = Some(468.0 - 420.0);
+                    p.word_wrap = Some(false);
+                })
+                .unwrap();
+            let layout = lay(&explicit);
+            let (para, _) = body_para_and_x(&layout).unwrap();
+            let line = para.lines.iter().find(|line| matches!(line.end, LineEnd::LineBreak | LineEnd::PageBreak | LineEnd::ColumnBreak)).unwrap();
+            assert!(line.xs.last().copied().unwrap_or(0.0) < line.right - 1.0, "explicit {break_char:?} line with {align:?} remains unexpanded");
+        }
     }
+}
+
+#[test]
+fn thai_justification_keeps_spaces_eligible_across_bookmark_markers() {
+    let text = "ภาษาไทย ภาษาไทย ภาษาไทย ภาษาไทย ภาษาไทย ภาษาไทย";
+    let (mut doc, _) = thai_justification_layout_with_wrap(text, Align::Justify, 120.0, 18.0, true);
+    let space = text.find(' ').unwrap();
+    doc.insert_object(&Pos::body(0, space + 1), InlineObject::BookmarkStart { name: "anchor".into() }, &Default::default()).unwrap();
+    let layout = lay(&doc);
+    let (para, _) = body_para_and_x(&layout).unwrap();
+    let line = para.lines.iter().find(|line| line.end == LineEnd::Wrap && line.c1 > line.c0).unwrap();
+    let marked_space = (line.c0..line.c1).find(|k| para.clusters.get(*k).is_some_and(|c| c.kind == ClKind::Space)).unwrap();
+    assert!(added_after(para, line, marked_space) > 0.02, "bookmark does not remove the visible space from justification");
 }
 
 #[test]
