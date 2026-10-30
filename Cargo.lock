@@ -6834,6 +6834,7 @@ dependencies = [
  "quick-xml 0.41.0",
  "wordcraft-doc",
  "wordcraft-geom",
+ "wordcraft-metafile",
  "zip 3.0.0",
 ]
 
